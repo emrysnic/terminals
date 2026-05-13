@@ -1,0 +1,14 @@
+[project]
+name = "terminals"
+version = "0.1.0"
+description = "Persistent logged tmux task terminals for observable and auditable AI-assisted shell work"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "GPL-3.0-or-later"
+authors = [{name = "Emrys Nicolaou", email = "emrys.nicolaou@gmail.com"}]
+
+[project.scripts]
+terminals = "terminals.cli:entrypoint"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

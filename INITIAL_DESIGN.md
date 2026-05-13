@@ -79,7 +79,7 @@ Example:
 hermes-task-20260513-081203-gmail-watcher-refactor
 ```
 
-`latest` should resolve to the most recently started non-archived task terminal.
+`latest` should resolve to the most recently started known task terminal.
 
 ## Directory layout
 
@@ -181,10 +181,14 @@ The wrapper should send commands into the task pane:
 terminals run <task> "git status"
 ```
 
+`run` is synchronous: it returns only after the submitted command has completed and the managed shell is ready for the next command.
+
 Implementation sketch:
 
 ```bash
 tmux send-keys -t "$SESSION" -- "$COMMAND" Enter
+tmux send-keys -t "$SESSION" -- "tmux wait-for -S $CHANNEL" Enter
+tmux wait-for "$CHANNEL"
 ```
 
 `run` should append a structured event before sending:
@@ -194,6 +198,8 @@ tmux send-keys -t "$SESSION" -- "$COMMAND" Enter
 ```
 
 The terminal transcript remains the source of truth for output and eventual prompt/exit markers.
+
+Because command events are written before the command is issued, they intentionally do not include exit codes. Exit status belongs in the prompt timestamp markers captured in `session.log`, not in `events.jsonl`.
 
 ## Attaching live
 
@@ -228,16 +234,16 @@ Ctrl-b d
    ```
 
 2. Mark metadata with `ended_at`, `status`, and `final_capture`.
-3. Optionally leave the tmux session alive for review or terminate it depending on configured retention.
+3. Kill the tmux session immediately.
 
-Default recommendation: leave the session alive after finish until explicit cleanup. That is more useful during early dogfooding.
+Default behavior: completed tmux sessions are cleaned up immediately by `finish`. The durable artifacts are the logs and metadata, not a completed tmux process.
 
 ## Retention and cleanup
 
 Initial behavior:
 
 - logs persist indefinitely;
-- finished tmux sessions remain until manually cleaned up;
+- finished tmux sessions are killed immediately by `finish`;
 - `terminals list` shows running and finished known tasks;
 - `terminals cleanup --older-than 7d --kill-finished` can be added later.
 
@@ -274,7 +280,7 @@ Possible settings:
 ```toml
 root = "~/.hermes/task-terminals"
 history_limit = 200000
-keep_finished_sessions = true
+keep_finished_sessions = false
 default_shell = "bash"
 ```
 
@@ -293,7 +299,7 @@ Secret redaction should not be trusted as a complete defense; command discipline
 
 ## Implementation approach
 
-A small Python CLI is likely the best first implementation:
+A small Python CLI is the first implementation:
 
 - portable enough across macOS/Linux;
 - robust JSON metadata handling;
@@ -316,7 +322,7 @@ No daemon is needed for version 1. The system can be entirely command-driven aro
 - `start` creates tmux session, metadata, log dir, and `pipe-pane` logging.
 - `attach` attaches to session.
 - `list` reads metadata.
-- `finish` captures pane and updates metadata.
+- `finish` captures pane, updates metadata, and kills the tmux session.
 
 ### Milestone 3: command sending and prompt hooks
 
@@ -330,10 +336,16 @@ No daemon is needed for version 1. The system can be entirely command-driven aro
 - Possibly create a Hermes skill for the workflow.
 - Consider wrapping substantial terminal work by default.
 
+## Resolved initial decisions
+
+- Package/command name: `terminals`.
+- Implementation language: Python.
+- `run` behavior: synchronous.
+- `run` wait mechanism: explicit tmux `wait-for` sentinel command after the user command.
+- Completed tmux sessions: killed immediately by `finish` after final capture.
+- JSONL command events: written before command issuance; include command text and timing, but no exit code.
+
 ## Open questions
 
-- Should the first implementation be Python-only, shell-only, or hybrid?
-- Should finished tmux sessions remain alive forever during dogfooding, or have a default cleanup age?
-- Should the package name be `terminals`, `task-terminals`, or `emrys-terminals`?
-- Should JSONL command events include command text only, or also best-effort exit status parsed from prompt hooks?
-- Should `run` be synchronous, asynchronous, or both?
+- Should log redaction be opt-in, always-on for known secret patterns, or left to command discipline?
+- What Nix packaging shape should be used first: flake app, package, Home Manager module, or all three?

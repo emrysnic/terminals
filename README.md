@@ -10,7 +10,7 @@ The goal is to make terminal work observable and auditable:
 - final captured logs for after-action review;
 - simple metadata so task terminal history can be searched and cleaned up later.
 
-This project starts as a design repository. The first implementation target is a small CLI wrapper around tmux, tentatively called `terminals`, that creates, logs, attaches to, runs commands in, and finalizes task-scoped terminal sessions.
+This project starts as a small Python CLI around tmux. It creates, logs, attaches to, runs commands in, and finalizes task-scoped terminal sessions.
 
 ## Why
 
@@ -37,6 +37,8 @@ terminals attach latest
 terminals finish latest
 terminals list
 ```
+
+`run` is synchronous. `finish` captures final scrollback and kills the tmux session immediately; logs remain on disk.
 
 The implementation should prefer boring, inspectable shell/Python over cleverness.
 
