@@ -202,6 +202,23 @@ def command_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_archive(args: argparse.Namespace) -> int:
+    tasks = [t for t in iter_metadata() if t.get("status") == "finished"]
+    if args.query:
+        tasks = [t for t in tasks if args.query.lower() in t.get("description", "").lower()]
+
+    total = len(tasks)
+    to_display = tasks[-10:][::-1]
+
+    print(f"Showing {len(to_display)} of {total} finished tasks:")
+    for task in to_display:
+        print(f"{task['task_id']}\t{task['description']}")
+
+    if total > 10:
+        print(f"... and {total - 10} more. Use a query to search.")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="terminals")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -229,6 +246,10 @@ def build_parser() -> argparse.ArgumentParser:
     list_cmd = subparsers.add_parser("list", help="list task terminals")
     list_cmd.add_argument("--json", action="store_true")
     list_cmd.set_defaults(func=command_list)
+
+    archive = subparsers.add_parser("archive", help="list and search archived task terminals")
+    archive.add_argument("query", nargs="?", help="optional search term")
+    archive.set_defaults(func=command_archive)
 
     return parser
 
