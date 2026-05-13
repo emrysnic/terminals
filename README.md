@@ -42,6 +42,28 @@ terminals list
 
 The implementation should prefer boring, inspectable shell/Python over cleverness.
 
+## Development install
+
+Until this grows a Nix package or wheel-based installer, the practical local development install is a small wrapper in a directory already on the login-shell `PATH`:
+
+```bash
+mkdir -p ~/.local/bin
+cat > ~/.local/bin/terminals <<'EOF'
+#!/bin/sh
+export PYTHONPATH="/path/to/terminals${PYTHONPATH:+:$PYTHONPATH}"
+exec /path/to/python -m terminals.cli "$@"
+EOF
+chmod 755 ~/.local/bin/terminals
+```
+
+For SSH/login shells, ensure `~/.local/bin` is on `PATH`, for example in `~/.zprofile`:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+On Emrys's current macOS host this wrapper is installed at `~/.local/bin/terminals`, points at `/Users/emrys/src/terminals`, and is available from a fresh SSH login shell.
+
 ## License
 
 GPL-3.0-or-later. See [`LICENSE`](LICENSE).
