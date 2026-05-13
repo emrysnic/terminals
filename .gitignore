@@ -1,0 +1,14 @@
+# Runtime artifacts
+*.log
+.DS_Store
+
+# Python, if/when implemented
+__pycache__/
+*.py[cod]
+.venv/
+dist/
+build/
+*.egg-info/
+
+# Local scratch
+/tmp/
